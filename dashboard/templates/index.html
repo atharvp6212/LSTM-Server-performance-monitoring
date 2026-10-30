@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="10">
+  <title>Self-Healing Cloud Dashboard</title>
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --border: #dde3ec;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --accent: #1d4ed8;
+      --accent-soft: #e8eefc;
+      --good: #047857;
+      --bad: #b91c1c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 24px 20px 48px; }
+    header.page {
+      display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+      gap: 8px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 14px;
+    }
+    header.page h1 { margin: 0; font-size: 1.45rem; font-weight: 650; }
+    header.page .sub { color: var(--muted); font-size: 0.85rem; }
+    .pill {
+      display: inline-block; background: var(--accent-soft); color: var(--accent);
+      border-radius: 999px; padding: 1px 10px; font-size: 0.78rem; font-weight: 600;
+      margin-left: 6px; vertical-align: middle;
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+    section { margin-bottom: 26px; }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 16px 18px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    }
+    .card h2 { margin: 0 0 10px; font-size: 1.02rem; font-weight: 650; }
+    .card h2 .hint { color: var(--muted); font-weight: 400; font-size: 0.8rem; margin-left: 6px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    tr:last-child td { border-bottom: none; }
+    td.num { font-variant-numeric: tabular-nums; }
+    .metric-table td:first-child { color: var(--muted); text-transform: capitalize; width: 45%; }
+    .metric-table td:last-child { font-variant-numeric: tabular-nums; word-break: break-word; }
+    .empty {
+      border: 1px dashed var(--border); border-radius: 8px; background: #fafbfd;
+      color: var(--muted); padding: 22px 16px; text-align: center; font-size: 0.9rem;
+    }
+    .empty strong { color: var(--text); display: block; margin-bottom: 4px; font-weight: 600; }
+    .empty code { background: var(--accent-soft); border-radius: 4px; padding: 1px 5px; font-size: 0.82rem; }
+    .plots { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+    figure { margin: 0; }
+    figure img {
+      width: 100%; max-width: 100%; height: auto; display: block;
+      border: 1px solid var(--border); border-radius: 6px; background: #fff;
+    }
+    figcaption { color: var(--muted); font-size: 0.82rem; margin-top: 6px; text-align: center; }
+    .table-scroll { overflow-x: auto; }
+    .events-table { min-width: 760px; }
+    .tag {
+      display: inline-block; border-radius: 4px; padding: 0 7px; font-size: 0.78rem; font-weight: 600;
+      background: var(--accent-soft); color: var(--accent);
+    }
+    .tag.yes { background: #fde8e8; color: var(--bad); }
+    .tag.no { background: #e7f6ef; color: var(--good); }
+    footer { color: var(--muted); font-size: 0.78rem; margin-top: 30px; border-top: 1px solid var(--border); padding-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="page">
+      <h1>Self-Healing Cloud Platform
+        <span class="pill">LSTM predictive monitoring</span>
+      </h1>
+      <div class="sub">
+        Dataset source: <strong>{{ dataset_source }}</strong>
+        &middot; Rendered {{ generated_at }}
+        &middot; auto-refreshes every 10&nbsp;s
+      </div>
+    </header>
+
+    <section>
+      <div class="grid">
+        <div class="card">
+          <h2>Model evaluation <span class="hint">reports/metrics.json</span></h2>
+          {% if eval_rows %}
+          <table class="metric-table">
+            <tbody>
+              {% for label, value in eval_rows %}
+              <tr><td>{{ label }}</td><td>{{ value }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="empty">
+            <strong>No evaluation metrics yet</strong>
+            Run <code>python scripts/evaluate_model.py</code> to produce
+            <code>reports/metrics.json</code>.
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="card">
+          <h2>Self-healing runtime <span class="hint">reports/selfhealing_report.json</span></h2>
+          {% if heal_rows %}
+          <table class="metric-table">
+            <tbody>
+              {% for label, value in heal_rows %}
+              <tr><td>{{ label }}</td><td>{{ value }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="empty">
+            <strong>No closed-loop report yet</strong>
+            Run <code>python scripts/run_selfhealing.py</code> to record MTTR,
+            uptime and action statistics.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="card">
+        <h2>Evaluation figures <span class="hint">reports/*.png</span></h2>
+        {% if plots %}
+        <div class="plots">
+          {% for plot in plots %}
+          <figure>
+            <img src="{{ url_for('report_file', filename=plot.file) }}?t={{ plot.stamp }}"
+                 alt="{{ plot.title }}">
+            <figcaption>{{ plot.title }}</figcaption>
+          </figure>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty">
+          <strong>No figures yet</strong>
+          Evaluation plots (confusion matrix, ROC curve, training history,
+          probability timeline) appear here after
+          <code>python scripts/evaluate_model.py</code>.
+        </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <section>
+      <div class="card">
+        <h2>Recent feedback events
+          <span class="hint">last {{ event_limit }}, newest first &middot; feedback/events.jsonl</span>
+        </h2>
+        {% if events %}
+        <div class="table-scroll">
+          <table class="events-table">
+            <thead>
+              <tr>
+                <th>Time (UTC)</th>
+                <th>Type</th>
+                <th>Probability</th>
+                <th>Trigger</th>
+                <th>Severity</th>
+                <th>Action</th>
+                <th>Success</th>
+                <th>Actual fault</th>
+                <th>Detail / target</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ev in events %}
+              <tr>
+                <td class="num">{{ ev.time }}</td>
+                <td><span class="tag">{{ ev.type }}</span></td>
+                <td class="num">{{ ev.probability }}</td>
+                <td>
+                  {% if ev.trigger in ("yes", "no") %}
+                  <span class="tag {{ ev.trigger }}">{{ ev.trigger }}</span>
+                  {% else %}{{ ev.trigger }}{% endif %}
+                </td>
+                <td>{{ ev.severity }}</td>
+                <td>{{ ev.action }}</td>
+                <td>{{ ev.success }}</td>
+                <td>{{ ev.actual_fault }}</td>
+                <td>{{ ev.detail }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty">
+          <strong>No feedback events yet</strong>
+          The feedback loop (paper Step 7) logs every prediction, healing
+          action and outcome to <code>feedback/events.jsonl</code> once the
+          self-healing loop runs.
+        </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <footer>
+      Implements Step 7 (performance monitoring &amp; feedback loop) of
+      Patil &amp; Patil, &ldquo;Self-Healing Cloud Platforms Using LSTM-based
+      Predictive Models for Early Fault Detection&rdquo;, IJCET 16(5), 2025.
+    </footer>
+  </div>
+</body>
+</html>

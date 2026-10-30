@@ -1,0 +1,81 @@
+# Configuration — Self-Healing Cloud Platform Using LSTM-Based Predictive Models
+# Implements the parameters described in the paper (IJCET 16(5) 2025, Article ID IJCET_16_05_012).
+
+project:
+  name: self-healing-cloud-lstm
+  seed: 42
+
+paths:
+  data_raw: data/raw
+  data_processed: data/processed
+  artifacts: models/artifacts
+  reports: reports
+  feedback_log: feedback/events.jsonl
+
+dataset:
+  source: synthetic            # synthetic | kaggle
+  kaggle_csv: data/raw/balanced_shuffled_traffic.csv
+  max_raw_features: 12         # top-variance features kept from the kaggle CSV
+  synthetic:
+    n_records: 85000           # ~85,000 log entries (paper Table 1)
+    n_pods: 12
+    n_nodes: 3
+    namespaces: [default, kube-system, production, staging]
+    tick_seconds: 15
+    fault_rate: 0.004          # per-tick probability a new fault begins ramping
+
+preprocessing:
+  impute_strategy: ffill       # ffill | mean | drop
+  scaler: minmax               # paper Step 1: Min-Max scaling
+
+windowing:                     # paper Step 2: sliding time window
+  window_size: 30              # w
+  stride: 1
+  horizon: 5                   # y=1 iff a fault occurs within the next `horizon` steps
+
+features:                      # paper Step 3: feature engineering
+  lags: 3                      # L
+  rolling: true                # rolling mean/std
+  delta: true                  # rate of change
+  utilization_ratio: true
+  threshold_flag: true
+  tau: 0.9                     # safety threshold on utilization ratio
+  limits:                      # configured resource limits (raw units, pre-scaling)
+    cpu_usage: 100.0
+    memory_usage: 100.0
+    network_io: 1000.0
+    pod_restarts: 5.0
+    error_event_rate: 20.0
+    warning_event_rate: 40.0
+
+model:                         # paper Step 4: Input -> LSTM -> Dropout -> Dense -> Dense
+  lstm_units: 64
+  dropout: 0.3
+  dense_units: 32
+  learning_rate: 0.001
+  batch_size: 64
+  epochs: 30
+  early_stopping_patience: 5
+  class_weight: balanced
+
+decision:                      # paper Step 5: thresholding and decision rule
+  fault_threshold: 0.7         # T
+  severity_bands:              # probability -> escalating action severity
+    alert: 0.7
+    scale: 0.8
+    restart: 0.9
+    drain: 0.97
+
+healing:                       # paper Step 6: self-healing integration
+  mode: simulate               # simulate | kubernetes
+  cooldown_seconds: 120
+  max_actions_per_hour: 30
+  kubernetes:
+    kubeconfig: null           # null -> default kubeconfig loading chain
+    namespace: default
+    max_replicas: 10
+    alert_webhook: null
+
+monitoring:                    # paper Step 7: performance monitoring and feedback loop
+  fp_rate_retrain_threshold: 0.2
+  retrain_every_events: 500

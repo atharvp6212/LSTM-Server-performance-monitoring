@@ -1,0 +1,31 @@
+{
+  "mttr_seconds": 37.5,
+  "uptime_percent": 99.12280701754386,
+  "false_positive_rate": 0.039045553145336226,
+  "precision": 0.6086956521739131,
+  "recall": 0.2545454545454545,
+  "predictions_total": 571,
+  "actions_taken": {
+    "restart_pod": 10,
+    "alert_admin": 33,
+    "scale_up": 1,
+    "reschedule_node": 2
+  },
+  "actions_succeeded": {
+    "restart_pod": 10,
+    "alert_admin": 33,
+    "scale_up": 1,
+    "reschedule_node": 2
+  },
+  "confusion": {
+    "tp": 28,
+    "fp": 18,
+    "tn": 443,
+    "fn": 82
+  },
+  "faults_total": 2,
+  "faults_recovered": 2,
+  "fault_open": false,
+  "downtime_seconds": 75.0,
+  "observed_span_seconds": 8550.0
+}

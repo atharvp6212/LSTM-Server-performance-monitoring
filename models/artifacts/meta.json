@@ -1,0 +1,21 @@
+{
+  "feature_cols": [
+    "cpu_usage",
+    "memory_usage",
+    "network_io",
+    "pod_restarts",
+    "error_event_rate",
+    "warning_event_rate"
+  ],
+  "window_size": 30,
+  "horizon": 5,
+  "stride": 1,
+  "engineered_dim": 54,
+  "threshold": 0.7,
+  "trained_at": "2026-08-21T12:28:39.078980+00:00",
+  "dataset_source": "synthetic",
+  "class_balance": {
+    "0": 12271,
+    "1": 769
+  }
+}
